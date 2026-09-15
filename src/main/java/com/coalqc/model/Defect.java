@@ -68,8 +68,17 @@ public class Defect {
         return status;
     }
 
-    public void setStatus(Status status) {
-        this.status = status;
+    public void transitionTo(Status target) {
+        if (!status.canTransitionTo(target)) {
+            throw new IllegalStatusTransitionException(status, target);
+        }
+        if (target == Status.CLOSED && verifiedBy == null) {
+            throw new IllegalStateException("Cannot close defect " + id + " without sign-off (verifiedBy)");
+        }
+        this.status = target;
+        if (target == Status.CLOSED) {
+            this.dateClosed = LocalDate.now();
+        }
     }
 
     public String getRootCause() {
@@ -98,9 +107,5 @@ public class Defect {
 
     public LocalDate getDateClosed() {
         return dateClosed;
-    }
-
-    public void setDateClosed(LocalDate dateClosed) {
-        this.dateClosed = dateClosed;
     }
 }

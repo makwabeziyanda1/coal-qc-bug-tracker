@@ -1,0 +1,72 @@
+package com.coalqc.service;
+
+import com.coalqc.model.Defect;
+import com.coalqc.model.IllegalStatusTransitionException;
+import com.coalqc.model.Severity;
+import com.coalqc.model.Status;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class DefectTrackerTest {
+
+    private final DefectTracker tracker = new DefectTracker();
+
+    @Test
+    void createdDefectCanBeRetrievedById() {
+        Defect defect = tracker.createDefect("Crash on save", "NPE", "ziyanda", "editor", Severity.MAJOR);
+
+        assertEquals(defect, tracker.getDefect(defect.getId()));
+    }
+
+    @Test
+    void gettingUnknownIdThrows() {
+        assertThrows(DefectNotFoundException.class, () -> tracker.getDefect(999));
+    }
+
+    @Test
+    void listDefectsReturnsAllCreatedDefectsInOrder() {
+        Defect first = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        Defect second = tracker.createDefect("B", "desc", "ziyanda", "server", Severity.CRITICAL);
+
+        assertEquals(List.of(first, second), tracker.listDefects());
+    }
+
+    @Test
+    void findByStatusFiltersCorrectly() {
+        Defect logged = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        Defect investigated = tracker.createDefect("B", "desc", "ziyanda", "server", Severity.CRITICAL);
+        tracker.changeStatus(investigated.getId(), Status.UNDER_INVESTIGATION);
+
+        assertEquals(List.of(logged), tracker.findByStatus(Status.LOGGED));
+        assertEquals(List.of(investigated), tracker.findByStatus(Status.UNDER_INVESTIGATION));
+    }
+
+    @Test
+    void findBySeverityFiltersCorrectly() {
+        Defect minor = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        Defect critical = tracker.createDefect("B", "desc", "ziyanda", "server", Severity.CRITICAL);
+
+        assertEquals(List.of(critical), tracker.findBySeverity(Severity.CRITICAL));
+        assertEquals(List.of(minor), tracker.findBySeverity(Severity.MINOR));
+    }
+
+    @Test
+    void findByComponentFiltersCorrectly() {
+        Defect editorBug = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        tracker.createDefect("B", "desc", "ziyanda", "server", Severity.CRITICAL);
+
+        assertEquals(List.of(editorBug), tracker.findByComponent("editor"));
+    }
+
+    @Test
+    void changeStatusDelegatesToDefectTransitionRules() {
+        Defect defect = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+
+        assertThrows(IllegalStatusTransitionException.class,
+                () -> tracker.changeStatus(defect.getId(), Status.CLOSED));
+    }
+}
