@@ -40,4 +40,26 @@ class StatusTest {
         assertFalse(Status.CORRECTIVE_ACTION.canTransitionTo(Status.REJECTED));
         assertFalse(Status.VERIFIED.canTransitionTo(Status.REJECTED));
     }
+
+    @Test
+    void underInvestigationAndClassifiedCanAlsoBeRejected() {
+        assertTrue(Status.UNDER_INVESTIGATION.canTransitionTo(Status.REJECTED));
+        assertTrue(Status.CLASSIFIED.canTransitionTo(Status.REJECTED));
+    }
+
+    @Test
+    void noStatusCanTransitionToItself() {
+        for (Status status : Status.values()) {
+            assertFalse(status.canTransitionTo(status));
+        }
+    }
+
+    @Test
+    void cannotSkipIntermediateSteps() {
+        assertFalse(Status.UNDER_INVESTIGATION.canTransitionTo(Status.CORRECTIVE_ACTION));
+        assertFalse(Status.UNDER_INVESTIGATION.canTransitionTo(Status.VERIFIED));
+        assertFalse(Status.CLASSIFIED.canTransitionTo(Status.VERIFIED));
+        assertFalse(Status.CLASSIFIED.canTransitionTo(Status.CLOSED));
+        assertFalse(Status.LOGGED.canTransitionTo(Status.CORRECTIVE_ACTION));
+    }
 }

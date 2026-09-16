@@ -69,6 +69,40 @@ class DefectApiTest {
     }
 
     @Test
+    void listDefectsFiltersByComponent() {
+        var tracker = new DefectTracker();
+        tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        tracker.createDefect("B", "d", "z", "server", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.get("/defects?component=server");
+
+            assertEquals(200, response.code());
+            String body = response.body().string();
+            assertTrue(body.contains("\"title\":\"B\""));
+            assertFalse(body.contains("\"title\":\"A\""));
+        });
+    }
+
+    @Test
+    void listDefectsWithNoFilterReturnsAll() {
+        var tracker = new DefectTracker();
+        tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        tracker.createDefect("B", "d", "z", "server", Severity.CRITICAL);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.get("/defects");
+
+            assertEquals(200, response.code());
+            String body = response.body().string();
+            assertTrue(body.contains("\"title\":\"A\""));
+            assertTrue(body.contains("\"title\":\"B\""));
+        });
+    }
+
+    @Test
     void listDefectsWithBogusSeverityReturns400() {
         var app = Main.createApp(new DefectTracker());
 
