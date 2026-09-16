@@ -21,6 +21,7 @@ public class DefectController {
         app.post("/defects", this::create);
         app.get("/defects", this::list);
         app.get("/defects/{id}", this::get);
+        app.patch("/defects/{id}/status", this::changeStatus);
     }
 
     private void create(Context ctx) {
@@ -51,5 +52,11 @@ public class DefectController {
     private void get(Context ctx) {
         int id = Integer.parseInt(ctx.pathParam("id"));
         ctx.json(tracker.getDefect(id));
+    }
+
+    private void changeStatus(Context ctx) {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        StatusChangeRequest request = ctx.bodyAsClass(StatusChangeRequest.class);
+        ctx.json(tracker.changeStatus(id, request.status()));
     }
 }
