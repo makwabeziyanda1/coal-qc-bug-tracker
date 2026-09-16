@@ -69,4 +69,18 @@ class DefectTrackerTest {
         assertThrows(IllegalStatusTransitionException.class,
                 () -> tracker.changeStatus(defect.getId(), Status.CLOSED));
     }
+
+    @Test
+    void recordSignOffSetsVerifiedBy() {
+        Defect defect = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+
+        Defect signedOff = tracker.recordSignOff(defect.getId(), "qc-lead");
+
+        assertEquals("qc-lead", signedOff.getVerifiedBy());
+    }
+
+    @Test
+    void recordSignOffOnUnknownIdThrows() {
+        assertThrows(DefectNotFoundException.class, () -> tracker.recordSignOff(999, "qc-lead"));
+    }
 }

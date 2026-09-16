@@ -55,4 +55,10 @@ public class DefectTracker {
         defect.transitionTo(newStatus);
         return defect;
     }
+
+    public Defect recordSignOff(int id, String verifiedBy) {
+        Defect defect = getDefect(id);
+        defect.setVerifiedBy(verifiedBy);
+        return defect;
+    }
 }
