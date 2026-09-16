@@ -1,12 +1,14 @@
 package com.coalqc.api;
 
 import com.coalqc.model.Severity;
+import com.coalqc.model.Status;
 import com.coalqc.service.DefectTracker;
 import io.javalin.testtools.JavalinTest;
 import okhttp3.Response;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefectApiTest {
@@ -118,6 +120,66 @@ class DefectApiTest {
                     """);
 
             assertEquals(404, response.code());
+        });
+    }
+
+    @Test
+    void verifyEndpointSetsVerifiedBy() {
+        var tracker = new DefectTracker();
+        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.patch("/defects/" + defect.getId() + "/verify", """
+                    {"verifiedBy":"qc-lead"}
+                    """);
+
+            assertEquals(200, response.code());
+            assertTrue(response.body().string().contains("\"verifiedBy\":\"qc-lead\""));
+        });
+    }
+
+    @Test
+    void verifyOnUnknownDefectReturns404() {
+        var app = Main.createApp(new DefectTracker());
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.patch("/defects/999/verify", """
+                    {"verifiedBy":"qc-lead"}
+                    """);
+
+            assertEquals(404, response.code());
+        });
+    }
+
+    @Test
+    void fullLifecycleReachesClosedAfterVerify() {
+        var tracker = new DefectTracker();
+        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        tracker.changeStatus(defect.getId(), Status.UNDER_INVESTIGATION);
+        tracker.changeStatus(defect.getId(), Status.CLASSIFIED);
+        tracker.changeStatus(defect.getId(), Status.CORRECTIVE_ACTION);
+        tracker.changeStatus(defect.getId(), Status.VERIFIED);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response beforeSignOff = client.patch("/defects/" + defect.getId() + "/status", """
+                    {"status":"CLOSED"}
+                    """);
+            assertEquals(400, beforeSignOff.code());
+
+            Response verifyResponse = client.patch("/defects/" + defect.getId() + "/verify", """
+                    {"verifiedBy":"qc-lead"}
+                    """);
+            assertEquals(200, verifyResponse.code());
+
+            Response afterSignOff = client.patch("/defects/" + defect.getId() + "/status", """
+                    {"status":"CLOSED"}
+                    """);
+            assertEquals(200, afterSignOff.code());
+            String body = afterSignOff.body().string();
+            assertTrue(body.contains("\"status\":\"CLOSED\""));
+            assertFalse(body.contains("\"dateClosed\":null"));
         });
     }
 }

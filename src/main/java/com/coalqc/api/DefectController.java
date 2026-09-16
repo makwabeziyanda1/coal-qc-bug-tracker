@@ -22,6 +22,7 @@ public class DefectController {
         app.get("/defects", this::list);
         app.get("/defects/{id}", this::get);
         app.patch("/defects/{id}/status", this::changeStatus);
+        app.patch("/defects/{id}/verify", this::verify);
     }
 
     private void create(Context ctx) {
@@ -58,5 +59,11 @@ public class DefectController {
         int id = Integer.parseInt(ctx.pathParam("id"));
         StatusChangeRequest request = ctx.bodyAsClass(StatusChangeRequest.class);
         ctx.json(tracker.changeStatus(id, request.status()));
+    }
+
+    private void verify(Context ctx) {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        VerifyRequest request = ctx.bodyAsClass(VerifyRequest.class);
+        ctx.json(tracker.recordSignOff(id, request.verifiedBy()));
     }
 }
