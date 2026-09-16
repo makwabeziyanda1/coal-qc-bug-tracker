@@ -20,6 +20,7 @@ public class DefectController {
     public void registerRoutes(Javalin app) {
         app.post("/defects", this::create);
         app.get("/defects", this::list);
+        app.get("/defects/{id}", this::get);
     }
 
     private void create(Context ctx) {
@@ -45,5 +46,10 @@ public class DefectController {
             defects = tracker.listDefects();
         }
         ctx.json(defects);
+    }
+
+    private void get(Context ctx) {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        ctx.json(tracker.getDefect(id));
     }
 }
