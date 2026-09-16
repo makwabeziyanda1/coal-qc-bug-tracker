@@ -18,6 +18,7 @@ public class Main {
             mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         })));
         new DefectController(tracker).registerRoutes(app);
+        ApiExceptionHandling.register(app);
         return app;
     }
 }
