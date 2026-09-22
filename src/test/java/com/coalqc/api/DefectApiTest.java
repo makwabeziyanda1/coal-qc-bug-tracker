@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefectApiTest {
 
+    // POST /defects
+
     @Test
     void createDefectReturns201WithBody() {
         var app = Main.createApp(new DefectTracker());
@@ -68,56 +70,22 @@ class DefectApiTest {
         });
     }
 
+    // GET /defects (list + filters)
+
     @Test
-    void changeStatusWithMissingStatusReturns400() {
+    void listDefectsWithNoFilterReturnsAll() {
         var tracker = new DefectTracker();
-        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        tracker.createDefect("B", "d", "z", "server", Severity.CRITICAL);
         var app = Main.createApp(tracker);
 
         JavalinTest.test(app, (server, client) -> {
-            Response response = client.patch("/defects/" + defect.getId() + "/status", "{}");
-
-            assertEquals(400, response.code());
-        });
-    }
-
-    @Test
-    void verifyWithBlankVerifiedByReturns400() {
-        var tracker = new DefectTracker();
-        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
-        var app = Main.createApp(tracker);
-
-        JavalinTest.test(app, (server, client) -> {
-            Response response = client.patch("/defects/" + defect.getId() + "/verify", """
-                    {"verifiedBy":"  "}
-                    """);
-
-            assertEquals(400, response.code());
-        });
-    }
-
-    @Test
-    void getUnknownDefectReturns404() {
-        var app = Main.createApp(new DefectTracker());
-
-        JavalinTest.test(app, (server, client) -> {
-            Response response = client.get("/defects/999");
-
-            assertEquals(404, response.code());
-        });
-    }
-
-    @Test
-    void getKnownDefectReturns200() {
-        var tracker = new DefectTracker();
-        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
-        var app = Main.createApp(tracker);
-
-        JavalinTest.test(app, (server, client) -> {
-            Response response = client.get("/defects/" + defect.getId());
+            Response response = client.get("/defects");
 
             assertEquals(200, response.code());
-            assertTrue(response.body().string().contains("\"title\":\"A\""));
+            String body = response.body().string();
+            assertTrue(body.contains("\"title\":\"A\""));
+            assertTrue(body.contains("\"title\":\"B\""));
         });
     }
 
@@ -153,23 +121,6 @@ class DefectApiTest {
     }
 
     @Test
-    void listDefectsWithNoFilterReturnsAll() {
-        var tracker = new DefectTracker();
-        tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
-        tracker.createDefect("B", "d", "z", "server", Severity.CRITICAL);
-        var app = Main.createApp(tracker);
-
-        JavalinTest.test(app, (server, client) -> {
-            Response response = client.get("/defects");
-
-            assertEquals(200, response.code());
-            String body = response.body().string();
-            assertTrue(body.contains("\"title\":\"A\""));
-            assertTrue(body.contains("\"title\":\"B\""));
-        });
-    }
-
-    @Test
     void listDefectsWithBogusSeverityReturns400() {
         var app = Main.createApp(new DefectTracker());
 
@@ -179,6 +130,35 @@ class DefectApiTest {
             assertEquals(400, response.code());
         });
     }
+
+    // GET /defects/{id}
+
+    @Test
+    void getKnownDefectReturns200() {
+        var tracker = new DefectTracker();
+        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.get("/defects/" + defect.getId());
+
+            assertEquals(200, response.code());
+            assertTrue(response.body().string().contains("\"title\":\"A\""));
+        });
+    }
+
+    @Test
+    void getUnknownDefectReturns404() {
+        var app = Main.createApp(new DefectTracker());
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.get("/defects/999");
+
+            assertEquals(404, response.code());
+        });
+    }
+
+    // PATCH /defects/{id}/status
 
     @Test
     void changeStatusHappyPath() {
@@ -212,6 +192,19 @@ class DefectApiTest {
     }
 
     @Test
+    void changeStatusWithMissingStatusReturns400() {
+        var tracker = new DefectTracker();
+        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.patch("/defects/" + defect.getId() + "/status", "{}");
+
+            assertEquals(400, response.code());
+        });
+    }
+
+    @Test
     void changeStatusOnUnknownDefectReturns404() {
         var app = Main.createApp(new DefectTracker());
 
@@ -223,6 +216,8 @@ class DefectApiTest {
             assertEquals(404, response.code());
         });
     }
+
+    // PATCH /defects/{id}/verify
 
     @Test
     void verifyEndpointSetsVerifiedBy() {
@@ -241,6 +236,21 @@ class DefectApiTest {
     }
 
     @Test
+    void verifyWithBlankVerifiedByReturns400() {
+        var tracker = new DefectTracker();
+        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.patch("/defects/" + defect.getId() + "/verify", """
+                    {"verifiedBy":"  "}
+                    """);
+
+            assertEquals(400, response.code());
+        });
+    }
+
+    @Test
     void verifyOnUnknownDefectReturns404() {
         var app = Main.createApp(new DefectTracker());
 
@@ -252,6 +262,8 @@ class DefectApiTest {
             assertEquals(404, response.code());
         });
     }
+
+    // Full lifecycle
 
     @Test
     void fullLifecycleReachesClosedAfterVerify() {
