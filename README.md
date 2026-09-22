@@ -1,6 +1,11 @@
 # Coal QC Bug Tracker
 
-A Java bug-triage tracker modeled on coal analysis QC out-of-spec (OOS) handling workflows.
+A Java REST API for tracking bugs, modeled on coal analysis QC out-of-spec (OOS)
+handling workflows rather than a generic issue tracker.
+
+## Demo video
+
+_TODO: link the 5-10 min walkthrough here._
 
 ## Concept
 
@@ -14,17 +19,91 @@ A Java bug-triage tracker modeled on coal analysis QC out-of-spec (OOS) handling
 | Root cause investigation | Root cause analysis / assigned to dev |
 | Corrective action (CA) — retest, adjust process | Fix implemented |
 | Preventive action (PA) — prevent recurrence | Regression test added |
-| Close out, sign-off, report to client | Bug closed, verified, release notes |
+| Sign-off, close out, report to client | QC lead verifies, bug closed |
+
+The state machine and its sign-off gate (below) are the point of the project:
+a defect can't be closed just because someone flips a flag, the same way a QC
+result can't be signed off without someone accountable for it.
 
 ## Status model
 
 ```
-LOGGED -> UNDER_INVESTIGATION -> CLASSIFIED -> CORRECTIVE_ACTION -> VERIFIED -> CLOSED
-                                                                  \-> REJECTED
+LOGGED ────────────────┐
+  │                     │
+  ▼                     │
+UNDER_INVESTIGATION ────┤
+  │                     ├──> REJECTED   (lab/testing error, not a real deviation)
+  ▼                     │
+CLASSIFIED ─────────────┘
+  │
+  ▼
+CORRECTIVE_ACTION
+  │
+  ▼
+VERIFIED ──(sign-off: verifiedBy set)──> CLOSED
 ```
 
-## Build
+Rules enforced by `Defect`/`Status`, not just described here:
+- Only the moves drawn above are legal; anything else (e.g. `LOGGED` straight to
+  `CLOSED`) throws `IllegalStatusTransitionException` (400 at the API).
+- `REJECTED` is only reachable from the early states — once corrective action
+  has started, a defect can't retroactively turn out to be a false alarm.
+- A defect can't reach `CLOSED` without `verifiedBy` being set first (via
+  `PATCH /defects/{id}/verify`) — mirrors a QC sign-off, not just a status flag.
+- `dateClosed` is stamped automatically when a defect closes.
+
+## REST API
+
+Base URL: `http://localhost:7000`
+
+| Method | Path | Body | Success | Errors |
+|---|---|---|---|---|
+| `POST` | `/defects` | `{title, description, reportedBy, component, severity}` | `201` + defect | `400` blank/missing field, missing or invalid `severity` |
+| `GET` | `/defects` | — (optional `?status=`, `?severity=`, `?component=`) | `200` + list | `400` invalid `status`/`severity` value |
+| `GET` | `/defects/{id}` | — | `200` + defect | `404` unknown id |
+| `PATCH` | `/defects/{id}/status` | `{status}` | `200` + defect | `400` illegal transition, missing sign-off, missing/invalid `status`; `404` unknown id |
+| `PATCH` | `/defects/{id}/verify` | `{verifiedBy}` | `200` + defect | `400` blank `verifiedBy`; `404` unknown id |
+
+`Severity` is one of `MINOR`, `MAJOR`, `CRITICAL`. `Status` is one of the values
+in the diagram above.
+
+### Example
+
+```bash
+curl -X POST http://localhost:7000/defects \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Ash content out of spec","description":"18.2% vs 14% max","reportedBy":"lab-analyst-3","component":"ash-analysis","severity":"CRITICAL"}'
+
+curl -X PATCH http://localhost:7000/defects/1/status \
+  -H "Content-Type: application/json" -d '{"status":"UNDER_INVESTIGATION"}'
+```
+
+## Running it
+
+```bash
+mvn compile
+mvn dependency:build-classpath -Dmdep.outputFile=cp.txt
+java -cp "target/classes;$(cat cp.txt)" com.coalqc.api.Main
+```
+
+Server listens on port 7000.
+
+## Testing
 
 ```bash
 mvn test
 ```
+
+43 tests: the status transition graph (exhaustively — including that no status
+can transition to itself and intermediate steps can't be skipped), the
+`Defect`/`DefectTracker` domain and service layers, and REST integration tests
+covering every endpoint's happy path, validation, and error responses.
+
+## Known limitations
+
+- In-memory storage only — data doesn't survive a restart.
+- No authentication — any caller can create or transition any defect.
+- No pagination on `GET /defects`.
+
+None of these were needed to demonstrate the triage/state-machine domain, but
+a production version would need all three.
