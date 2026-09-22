@@ -30,6 +30,73 @@ class DefectApiTest {
     }
 
     @Test
+    void createDefectWithBlankTitleReturns400() {
+        var app = Main.createApp(new DefectTracker());
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.post("/defects", """
+                    {"title":"  ","description":"NPE","reportedBy":"ziyanda","component":"editor","severity":"MAJOR"}
+                    """);
+
+            assertEquals(400, response.code());
+        });
+    }
+
+    @Test
+    void createDefectWithMissingSeverityReturns400() {
+        var app = Main.createApp(new DefectTracker());
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.post("/defects", """
+                    {"title":"Crash on save","description":"NPE","reportedBy":"ziyanda","component":"editor"}
+                    """);
+
+            assertEquals(400, response.code());
+        });
+    }
+
+    @Test
+    void createDefectWithInvalidSeverityReturns400() {
+        var app = Main.createApp(new DefectTracker());
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.post("/defects", """
+                    {"title":"Crash on save","description":"NPE","reportedBy":"ziyanda","component":"editor","severity":"BOGUS"}
+                    """);
+
+            assertEquals(400, response.code());
+        });
+    }
+
+    @Test
+    void changeStatusWithMissingStatusReturns400() {
+        var tracker = new DefectTracker();
+        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.patch("/defects/" + defect.getId() + "/status", "{}");
+
+            assertEquals(400, response.code());
+        });
+    }
+
+    @Test
+    void verifyWithBlankVerifiedByReturns400() {
+        var tracker = new DefectTracker();
+        var defect = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.patch("/defects/" + defect.getId() + "/verify", """
+                    {"verifiedBy":"  "}
+                    """);
+
+            assertEquals(400, response.code());
+        });
+    }
+
+    @Test
     void getUnknownDefectReturns404() {
         var app = Main.createApp(new DefectTracker());
 
