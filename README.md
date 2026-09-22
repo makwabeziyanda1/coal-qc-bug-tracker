@@ -107,3 +107,7 @@ covering every endpoint's happy path, validation, and error responses.
 
 None of these were needed to demonstrate the triage/state-machine domain, but
 a production version would need all three.
+
+## Verification
+
+WTC-J9T6L7HB
