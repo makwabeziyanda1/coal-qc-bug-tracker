@@ -5,5 +5,6 @@ import com.coalqc.model.Status;
 
 import java.util.Map;
 
-public record DefectSummary(Map<Status, Long> countsByStatus, Map<Severity, Long> countsBySeverity) {
+public record DefectSummary(Map<Status, Long> countsByStatus, Map<Severity, Long> countsBySeverity,
+                             double averageDaysToClose) {
 }

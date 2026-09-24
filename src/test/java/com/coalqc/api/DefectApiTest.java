@@ -150,6 +150,7 @@ class DefectApiTest {
             assertTrue(body.contains("\"LOGGED\":1"));
             assertTrue(body.contains("\"MINOR\":1"));
             assertTrue(body.contains("\"CRITICAL\":1"));
+            assertTrue(body.contains("\"averageDaysToClose\":0.0"));
         });
     }
 

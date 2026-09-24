@@ -135,4 +135,34 @@ class DefectTrackerTest {
 
         assertEquals(List.of(stillOpen), tracker.findOpenCriticals());
     }
+
+    @Test
+    void averageDaysToCloseIsZeroWhenNothingClosed() {
+        tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+
+        assertEquals(0.0, tracker.averageDaysToClose());
+    }
+
+    @Test
+    void averageDaysToCloseOnlyConsidersClosedDefects() {
+        Defect closed = closeADefect();
+        tracker.createDefect("B", "desc", "ziyanda", "server", Severity.MAJOR);
+
+        // dateLogged and dateClosed both fall on "today" within this test run,
+        // so 0 days is the correct answer here -- this test protects the
+        // "only CLOSED defects count" filtering, not the day-difference math.
+        assertEquals(0.0, tracker.averageDaysToClose());
+        assertEquals(Status.CLOSED, closed.getStatus());
+    }
+
+    private Defect closeADefect() {
+        Defect defect = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        tracker.changeStatus(defect.getId(), Status.UNDER_INVESTIGATION);
+        tracker.changeStatus(defect.getId(), Status.CLASSIFIED);
+        tracker.changeStatus(defect.getId(), Status.CORRECTIVE_ACTION);
+        tracker.changeStatus(defect.getId(), Status.VERIFIED);
+        tracker.recordSignOff(defect.getId(), "qc-lead");
+        tracker.changeStatus(defect.getId(), Status.CLOSED);
+        return defect;
+    }
 }

@@ -53,7 +53,7 @@ public class DefectController {
     }
 
     private void summary(Context ctx) {
-        ctx.json(new DefectSummary(tracker.countByStatus(), tracker.countBySeverity()));
+        ctx.json(new DefectSummary(tracker.countByStatus(), tracker.countBySeverity(), tracker.averageDaysToClose()));
     }
 
     private void openCriticals(Context ctx) {

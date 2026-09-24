@@ -4,6 +4,7 @@ import com.coalqc.model.Defect;
 import com.coalqc.model.Severity;
 import com.coalqc.model.Status;
 
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,5 +78,18 @@ public class DefectTracker {
                 .filter(defect -> defect.getSeverity() == Severity.CRITICAL)
                 .filter(defect -> defect.getStatus() != Status.CLOSED && defect.getStatus() != Status.REJECTED)
                 .collect(Collectors.toList());
+    }
+
+    public double averageDaysToClose() {
+        List<Defect> closedDefects = defects.values().stream()
+                .filter(defect -> defect.getStatus() == Status.CLOSED)
+                .collect(Collectors.toList());
+        if (closedDefects.isEmpty()) {
+            return 0.0;
+        }
+        return closedDefects.stream()
+                .mapToLong(defect -> ChronoUnit.DAYS.between(defect.getDateLogged(), defect.getDateClosed()))
+                .average()
+                .orElse(0.0);
     }
 }
