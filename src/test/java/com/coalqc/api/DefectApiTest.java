@@ -131,6 +131,28 @@ class DefectApiTest {
         });
     }
 
+    // GET /defects/summary
+
+    @Test
+    void summaryReturnsCountsByStatusAndSeverity() {
+        var tracker = new DefectTracker();
+        var first = tracker.createDefect("A", "d", "z", "editor", Severity.MINOR);
+        tracker.createDefect("B", "d", "z", "server", Severity.CRITICAL);
+        tracker.changeStatus(first.getId(), Status.UNDER_INVESTIGATION);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.get("/defects/summary");
+
+            assertEquals(200, response.code());
+            String body = response.body().string();
+            assertTrue(body.contains("\"UNDER_INVESTIGATION\":1"));
+            assertTrue(body.contains("\"LOGGED\":1"));
+            assertTrue(body.contains("\"MINOR\":1"));
+            assertTrue(body.contains("\"CRITICAL\":1"));
+        });
+    }
+
     // GET /defects/{id}
 
     @Test

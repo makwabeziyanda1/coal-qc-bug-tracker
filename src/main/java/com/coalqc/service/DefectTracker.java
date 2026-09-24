@@ -61,4 +61,14 @@ public class DefectTracker {
         defect.setVerifiedBy(verifiedBy);
         return defect;
     }
+
+    public Map<Status, Long> countByStatus() {
+        return defects.values().stream()
+                .collect(Collectors.groupingBy(Defect::getStatus, Collectors.counting()));
+    }
+
+    public Map<Severity, Long> countBySeverity() {
+        return defects.values().stream()
+                .collect(Collectors.groupingBy(Defect::getSeverity, Collectors.counting()));
+    }
 }

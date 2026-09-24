@@ -7,6 +7,7 @@ import com.coalqc.model.Status;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -82,5 +83,29 @@ class DefectTrackerTest {
     @Test
     void recordSignOffOnUnknownIdThrows() {
         assertThrows(DefectNotFoundException.class, () -> tracker.recordSignOff(999, "qc-lead"));
+    }
+
+    @Test
+    void countByStatusGroupsCorrectly() {
+        Defect first = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        tracker.createDefect("B", "desc", "ziyanda", "server", Severity.CRITICAL);
+        tracker.changeStatus(first.getId(), Status.UNDER_INVESTIGATION);
+
+        Map<Status, Long> counts = tracker.countByStatus();
+
+        assertEquals(1L, counts.get(Status.UNDER_INVESTIGATION));
+        assertEquals(1L, counts.get(Status.LOGGED));
+    }
+
+    @Test
+    void countBySeverityGroupsCorrectly() {
+        tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        tracker.createDefect("B", "desc", "ziyanda", "server", Severity.CRITICAL);
+        tracker.createDefect("C", "desc", "ziyanda", "server", Severity.CRITICAL);
+
+        Map<Severity, Long> counts = tracker.countBySeverity();
+
+        assertEquals(1L, counts.get(Severity.MINOR));
+        assertEquals(2L, counts.get(Severity.CRITICAL));
     }
 }
