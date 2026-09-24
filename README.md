@@ -60,6 +60,8 @@ Base URL: `http://localhost:7000`
 |---|---|---|---|---|
 | `POST` | `/defects` | `{title, description, reportedBy, component, severity}` | `201` + defect | `400` blank/missing field, missing or invalid `severity` |
 | `GET` | `/defects` | — (optional `?status=`, `?severity=`, `?component=`) | `200` + list | `400` invalid `status`/`severity` value |
+| `GET` | `/defects/summary` | — | `200` + `{countsByStatus, countsBySeverity, averageDaysToClose}` | — |
+| `GET` | `/defects/open-criticals` | — | `200` + list of CRITICAL defects not CLOSED/REJECTED | — |
 | `GET` | `/defects/{id}` | — | `200` + defect | `404` unknown id |
 | `PATCH` | `/defects/{id}/status` | `{status}` | `200` + defect | `400` illegal transition, missing sign-off, missing/invalid `status`; `404` unknown id |
 | `PATCH` | `/defects/{id}/verify` | `{verifiedBy}` | `200` + defect | `400` blank `verifiedBy`; `404` unknown id |
@@ -94,10 +96,12 @@ Server listens on port 7000.
 mvn test
 ```
 
-43 tests: the status transition graph (exhaustively — including that no status
+53 tests: the status transition graph (exhaustively — including that no status
 can transition to itself and intermediate steps can't be skipped), the
-`Defect`/`DefectTracker` domain and service layers, and REST integration tests
-covering every endpoint's happy path, validation, and error responses.
+`Defect`/`DefectTracker` domain and service layers (including the summary
+counts, open-criticals filter, and average-time-to-close aggregation), and
+REST integration tests covering every endpoint's happy path, validation,
+error responses, and empty-state edge cases.
 
 ## Known limitations
 
