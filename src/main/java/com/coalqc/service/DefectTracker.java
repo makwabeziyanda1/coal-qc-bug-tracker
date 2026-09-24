@@ -71,4 +71,11 @@ public class DefectTracker {
         return defects.values().stream()
                 .collect(Collectors.groupingBy(Defect::getSeverity, Collectors.counting()));
     }
+
+    public List<Defect> findOpenCriticals() {
+        return defects.values().stream()
+                .filter(defect -> defect.getSeverity() == Severity.CRITICAL)
+                .filter(defect -> defect.getStatus() != Status.CLOSED && defect.getStatus() != Status.REJECTED)
+                .collect(Collectors.toList());
+    }
 }

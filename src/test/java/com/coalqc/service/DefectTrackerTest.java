@@ -108,4 +108,31 @@ class DefectTrackerTest {
         assertEquals(1L, counts.get(Severity.MINOR));
         assertEquals(2L, counts.get(Severity.CRITICAL));
     }
+
+    @Test
+    void findOpenCriticalsExcludesMinorAndMajor() {
+        tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.MINOR);
+        tracker.createDefect("B", "desc", "ziyanda", "server", Severity.MAJOR);
+        Defect critical = tracker.createDefect("C", "desc", "ziyanda", "server", Severity.CRITICAL);
+
+        assertEquals(List.of(critical), tracker.findOpenCriticals());
+    }
+
+    @Test
+    void findOpenCriticalsExcludesClosedAndRejected() {
+        Defect rejected = tracker.createDefect("A", "desc", "ziyanda", "editor", Severity.CRITICAL);
+        tracker.changeStatus(rejected.getId(), Status.REJECTED);
+
+        Defect closed = tracker.createDefect("B", "desc", "ziyanda", "server", Severity.CRITICAL);
+        tracker.changeStatus(closed.getId(), Status.UNDER_INVESTIGATION);
+        tracker.changeStatus(closed.getId(), Status.CLASSIFIED);
+        tracker.changeStatus(closed.getId(), Status.CORRECTIVE_ACTION);
+        tracker.changeStatus(closed.getId(), Status.VERIFIED);
+        tracker.recordSignOff(closed.getId(), "qc-lead");
+        tracker.changeStatus(closed.getId(), Status.CLOSED);
+
+        Defect stillOpen = tracker.createDefect("C", "desc", "ziyanda", "server", Severity.CRITICAL);
+
+        assertEquals(List.of(stillOpen), tracker.findOpenCriticals());
+    }
 }
