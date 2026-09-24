@@ -69,23 +69,46 @@ Base URL: `http://localhost:7000`
 `Severity` is one of `MINOR`, `MAJOR`, `CRITICAL`. `Status` is one of the values
 in the diagram above.
 
-### Example
+### Example: full lifecycle
 
 ```bash
+# Create a defect
 curl -X POST http://localhost:7000/defects \
   -H "Content-Type: application/json" \
-  -d '{"title":"Ash content out of spec","description":"18.2% vs 14% max","reportedBy":"lab-analyst-3","component":"ash-analysis","severity":"CRITICAL"}'
+  -d '{"title":"Ash content out of spec on batch B-311","description":"18.2% vs 14% max spec","reportedBy":"lab-analyst-3","component":"ash-analysis","severity":"CRITICAL"}'
 
+# Illegal transition -- rejected, 400
 curl -X PATCH http://localhost:7000/defects/1/status \
-  -H "Content-Type: application/json" -d '{"status":"UNDER_INVESTIGATION"}'
+  -H "Content-Type: application/json" -d '{"status":"CLOSED"}'
+
+# Walk the legal path
+curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"UNDER_INVESTIGATION"}'
+curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"CLASSIFIED"}'
+curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"CORRECTIVE_ACTION"}'
+curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"VERIFIED"}'
+
+# Still can't close -- no sign-off yet, 400
+curl -X PATCH http://localhost:7000/defects/1/status \
+  -H "Content-Type: application/json" -d '{"status":"CLOSED"}'
+
+# Sign off
+curl -X PATCH http://localhost:7000/defects/1/verify \
+  -H "Content-Type: application/json" -d '{"verifiedBy":"qc-lead-thandi"}'
+
+# Now it closes -- dateClosed gets stamped automatically
+curl -X PATCH http://localhost:7000/defects/1/status \
+  -H "Content-Type: application/json" -d '{"status":"CLOSED"}'
+
+# Reporting
+curl http://localhost:7000/defects/summary
+curl http://localhost:7000/defects/open-criticals
 ```
 
 ## Running it
 
 ```bash
-mvn compile
-mvn dependency:build-classpath -Dmdep.outputFile=cp.txt
-java -cp "target/classes;$(cat cp.txt)" com.coalqc.api.Main
+mvn package -DskipTests
+java -jar target/coal-qc-bug-tracker-1.0-SNAPSHOT.jar
 ```
 
 Server listens on port 7000.
