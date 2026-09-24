@@ -154,12 +154,27 @@ class DefectApiTest {
         });
     }
 
+    @Test
+    void summaryOnEmptyTrackerReturnsEmptyCountsNotAnError() {
+        var app = Main.createApp(new DefectTracker());
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.get("/defects/summary");
+
+            assertEquals(200, response.code());
+            String body = response.body().string();
+            assertTrue(body.contains("\"countsByStatus\":{}"));
+            assertTrue(body.contains("\"countsBySeverity\":{}"));
+            assertTrue(body.contains("\"averageDaysToClose\":0.0"));
+        });
+    }
+
     // GET /defects/open-criticals
 
     @Test
     void openCriticalsReturnsOnlyUnresolvedCriticalDefects() {
         var tracker = new DefectTracker();
-        var critical = tracker.createDefect("Critical batch failure", "d", "z", "ash-analysis", Severity.CRITICAL);
+        tracker.createDefect("Critical batch failure", "d", "z", "ash-analysis", Severity.CRITICAL);
         tracker.createDefect("Minor drift", "d", "z", "moisture-analysis", Severity.MINOR);
         var app = Main.createApp(tracker);
 
@@ -170,6 +185,20 @@ class DefectApiTest {
             String body = response.body().string();
             assertTrue(body.contains("\"title\":\"Critical batch failure\""));
             assertFalse(body.contains("\"title\":\"Minor drift\""));
+        });
+    }
+
+    @Test
+    void openCriticalsReturnsEmptyListWhenNoneAreCritical() {
+        var tracker = new DefectTracker();
+        tracker.createDefect("Minor drift", "d", "z", "moisture-analysis", Severity.MINOR);
+        var app = Main.createApp(tracker);
+
+        JavalinTest.test(app, (server, client) -> {
+            Response response = client.get("/defects/open-criticals");
+
+            assertEquals(200, response.code());
+            assertEquals("[]", response.body().string());
         });
     }
 
