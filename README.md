@@ -104,6 +104,39 @@ curl http://localhost:7000/defects/summary
 curl http://localhost:7000/defects/open-criticals
 ```
 
+<details>
+<summary>Same walkthrough in PowerShell (Windows' <code>curl</code> is aliased to <code>Invoke-WebRequest</code>, which doesn't take <code>-X</code>/<code>-H</code>/<code>-d</code>)</summary>
+
+```powershell
+# Create a defect
+$defect = Invoke-RestMethod -Uri http://localhost:7000/defects -Method Post -ContentType "application/json" -Body '{"title":"Ash content out of spec on batch B-311","description":"18.2% vs 14% max spec","reportedBy":"lab-analyst-3","component":"ash-analysis","severity":"CRITICAL"}'
+$defect
+
+# Illegal transition -- rejected, 400
+try { Invoke-RestMethod -Uri "http://localhost:7000/defects/$($defect.id)/status" -Method Patch -ContentType "application/json" -Body '{"status":"CLOSED"}' } catch { $_.ErrorDetails.Message }
+
+# Walk the legal path
+foreach ($status in "UNDER_INVESTIGATION","CLASSIFIED","CORRECTIVE_ACTION","VERIFIED") {
+    Invoke-RestMethod -Uri "http://localhost:7000/defects/$($defect.id)/status" -Method Patch -ContentType "application/json" -Body "{`"status`":`"$status`"}" | Out-Null
+    Write-Host "-> $status"
+}
+
+# Still can't close -- no sign-off yet, 400
+try { Invoke-RestMethod -Uri "http://localhost:7000/defects/$($defect.id)/status" -Method Patch -ContentType "application/json" -Body '{"status":"CLOSED"}' } catch { $_.ErrorDetails.Message }
+
+# Sign off
+Invoke-RestMethod -Uri "http://localhost:7000/defects/$($defect.id)/verify" -Method Patch -ContentType "application/json" -Body '{"verifiedBy":"qc-lead-thandi"}'
+
+# Now it closes -- dateClosed gets stamped automatically
+Invoke-RestMethod -Uri "http://localhost:7000/defects/$($defect.id)/status" -Method Patch -ContentType "application/json" -Body '{"status":"CLOSED"}'
+
+# Reporting
+Invoke-RestMethod -Uri http://localhost:7000/defects/summary
+Invoke-RestMethod -Uri http://localhost:7000/defects/open-criticals
+```
+
+</details>
+
 ## Running it
 
 ```bash
