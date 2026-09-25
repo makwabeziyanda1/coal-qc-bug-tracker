@@ -71,42 +71,6 @@ in the diagram above.
 
 ### Example: full lifecycle
 
-```bash
-# Create a defect
-curl -X POST http://localhost:7000/defects \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Ash content out of spec on batch B-311","description":"18.2% vs 14% max spec","reportedBy":"lab-analyst-3","component":"ash-analysis","severity":"CRITICAL"}'
-
-# Illegal transition -- rejected, 400
-curl -X PATCH http://localhost:7000/defects/1/status \
-  -H "Content-Type: application/json" -d '{"status":"CLOSED"}'
-
-# Walk the legal path
-curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"UNDER_INVESTIGATION"}'
-curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"CLASSIFIED"}'
-curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"CORRECTIVE_ACTION"}'
-curl -X PATCH http://localhost:7000/defects/1/status -H "Content-Type: application/json" -d '{"status":"VERIFIED"}'
-
-# Still can't close -- no sign-off yet, 400
-curl -X PATCH http://localhost:7000/defects/1/status \
-  -H "Content-Type: application/json" -d '{"status":"CLOSED"}'
-
-# Sign off
-curl -X PATCH http://localhost:7000/defects/1/verify \
-  -H "Content-Type: application/json" -d '{"verifiedBy":"qc-lead-thandi"}'
-
-# Now it closes -- dateClosed gets stamped automatically
-curl -X PATCH http://localhost:7000/defects/1/status \
-  -H "Content-Type: application/json" -d '{"status":"CLOSED"}'
-
-# Reporting
-curl http://localhost:7000/defects/summary
-curl http://localhost:7000/defects/open-criticals
-```
-
-<details>
-<summary>Same walkthrough in PowerShell (Windows' <code>curl</code> is aliased to <code>Invoke-WebRequest</code>, which doesn't take <code>-X</code>/<code>-H</code>/<code>-d</code>)</summary>
-
 ```powershell
 # Create a defect
 $defect = Invoke-RestMethod -Uri http://localhost:7000/defects -Method Post -ContentType "application/json" -Body '{"title":"Ash content out of spec on batch B-311","description":"18.2% vs 14% max spec","reportedBy":"lab-analyst-3","component":"ash-analysis","severity":"CRITICAL"}'
@@ -134,8 +98,6 @@ Invoke-RestMethod -Uri "http://localhost:7000/defects/$($defect.id)/status" -Met
 Invoke-RestMethod -Uri http://localhost:7000/defects/summary
 Invoke-RestMethod -Uri http://localhost:7000/defects/open-criticals
 ```
-
-</details>
 
 ## Running it
 
