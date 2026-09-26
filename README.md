@@ -5,7 +5,7 @@ handling workflows rather than a generic issue tracker.
 
 ## Demo video
 
-_TODO: link the 5-10 min walkthrough here._
+[Watch on YouTube](https://youtu.be/lZDp2YKgmBw)
 
 ## Concept
 
